@@ -2,104 +2,77 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Rocket_Elevators_Consolidation_REST.Models;
+using RestAPI.Models;
 
-namespace Rocket_Elevators_Consolidation_REST.Controllers
+namespace RestAPI.Controllers
 {
-  [Route("[controller]")]
-  [ApiController]
-  public class EmployeesController : ControllerBase
-  {
-    private readonly RailsApp_developmentContext _context;
+    [Route("api/[controller]")]
+    [ApiController]
 
-    public EmployeesController(RailsApp_developmentContext context)
+    public class EmployeesController : ControllerBase
     {
-      _context = context;
-    }
+        private readonly RestAPIContext _context;
 
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Employees>>> GetEmployees()
-    {
-      return await _context.Employees.ToListAsync();
-    }
-
-    
-    
-    [HttpGet("{Email}")]
-    public async Task<ActionResult<List<Employees>>> GetBatteryStatus(string Email)
-    {
-       var Employees = await _context.Employees
-         .Where(Employee => Employee.Email == Email)
-        .ToListAsync();
-      
-        
-      
-      if (Employees == null)
-      {
-        return NotFound();
-      }
-
-      return Employees;
-    }
-    
-    
-       
-       
-        [HttpGet("{id}/battery")]
-        public async Task<ActionResult<List<Batteries>>> GetBattery(long id)
+        public EmployeesController(RestAPIContext context)
         {
-            var battery = await _context.Batteries.Where(b => b.BuildingId == id).ToListAsync();
-            
-            
+            _context = context;
+        }
 
-            if (battery == null)
+        //-----------------------------------------------------------------------------------------\\
+
+        //GET: api/Employees
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Employee>>> CheckIfEmployees()
+        {
+            return await _context.employees.ToListAsync();
+        }
+
+        //-----------------------------------------------------------------------------------------\\
+
+        //GET: api/Employees/id
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Employee>> GetEmployees(long id)
+        {
+            var employees = await _context.employees.FindAsync(id);
+
+            if (employees == null)
             {
-              
                 return NotFound();
             }
 
-            return battery;
+            return employees;
         }
-        [HttpGet("{id}/column")]
-        public async Task<ActionResult<List<Columns>>> GetColumn(long id)
-        {
-            var columns = await _context.Columns.Where(b => b.BatteryId == id).ToListAsync();
-            
-            
 
-            if (columns == null)
+        //-----------------------------------------------------------------------------------------\\
+
+        // GET: api/Employees/valid/{email}
+        [HttpGet("valid/{email}")]
+        public async Task<ActionResult<bool>> CheckIfEmployees(string email)
+        {
+            var employees = await _context.employees.Where(employees => employees.email == email).ToListAsync();
+            var isValid = false;
+
+            foreach (Employee employee in employees)
             {
-              
-                return NotFound();
+                if (employee.email == email)
+                {
+                    isValid = true;
+                }
             }
 
-            return columns;
+            return isValid;
         }
-        [HttpGet("{id}/elevator")]
-        public async Task<ActionResult<List<Elevators>>> GetElevator(long id)
+
+
+
+        //-----------------------------------------------------------------------------------------\\
+
+        private bool EmployeesExists(string email)
         {
-            var elevators = await _context.Elevators.Where(b => b.ColumnId == id).ToListAsync();
-            
-            
-
-            if (elevators == null)
-            {
-              
-                return NotFound();
-            }
-
-            return elevators;
+            return _context.employees.Any(e => e.email == email);
         }
-        
-
-
-   
-
-    private bool EmployeeExists(string Email)
-    {
-      return _context.Employees.Any(e => e.Email == Email);
     }
-  }
 }
