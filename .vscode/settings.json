@@ -1,0 +1,4 @@
+{
+    "appService.deploySubpath": "publish",
+    "appService.defaultWebAppToDeploy": "/subscriptions/84e529a0-2f2d-430e-bd7a-73ee166062b7/resourceGroups/Rocket/providers/Microsoft.Web/sites/rocketboom"
+}
