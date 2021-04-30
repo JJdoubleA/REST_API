@@ -61,7 +61,7 @@ namespace RestAPI.Controllers
       return elevator;
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id}/status")]
     public async Task<IActionResult> ChangeElevatortatus(long id, [FromBody] Elevator elevator)
     {
       var findElevator = await _context.elevators.FindAsync(id);
@@ -91,6 +91,7 @@ namespace RestAPI.Controllers
       try
       {
         await _context.SaveChangesAsync();
+        
       }
       catch (DbUpdateConcurrencyException)
       {
