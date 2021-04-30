@@ -2,108 +2,114 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestAPI.Models;
 
 namespace RestAPI.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class ElevatorsController : ControllerBase
+  [Route("[controller]")]
+  [ApiController]
+  public class ElevatorController : ControllerBase
+  {
+    private readonly RestAPIContext _context;
+
+    public ElevatorController(RestAPIContext context)
     {
-        private readonly RestAPIContext _context;
-
-        public ElevatorsController(RestAPIContext context)
-        {
-            _context = context;
-        }
-
-//------------------- Retrieving a list of Elevators that are not in operation at the time of the request -------------------\\
-
-        // GET: api/Elevators/NotActive
-        [HttpGet("NotActive")]
-        public object GetElevators()
-        {
-            return _context.elevators
-                .Where(elevator => elevator.status != "Active")
-                .Select(elevator => new {elevator.id, elevator.serial_number, elevator.status});
-            
-        }
-
-//----------------------------------- Retrieving all information from a specific Elevator -----------------------------------\\
-
-        //GET: api/Elevators/id
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Elevator>> GetElevator(long id)
-        {
-            var elevator = await _context.elevators.FindAsync(id);
-
-            if (elevator == null)
-            {
-                return NotFound();
-            }
-
-            return elevator;
-        }
-
-//----------------------------------- Retrieving the current status of a specific Elevator -----------------------------------\\
-
-        // GET: api/Elevators/id/Status
-        [HttpGet("{id}/Status")]
-        public async Task<ActionResult<Elevator>> GetColumnStatus([FromRoute] long id)
-        {
-            var elevator = await _context.elevators.FindAsync(id);
-
-            if (elevator == null)
-            {
-                return NotFound();
-            }
-
-            return Content("The status of elevator " + elevator.id + " is: " + elevator.status);
-        }
-
-//----------------------------------- Changing the status of a specific Elevator -----------------------------------\\
-
-        // PUT: api/Elevators/id/Status        
-        [HttpPut("{id}/Status")]
-        public async Task<IActionResult> PutElevator([FromRoute] long id, Elevator elevator)
-        {
-            if (id != elevator.id)
-            {
-                return BadRequest();
-            }
-            
-            if (elevator.status == "Active" || elevator.status == "Inactive" || elevator.status == "Intervention")
-            {
-                Elevator elevatorFound = await _context.elevators.FindAsync(id);
-                elevatorFound.status = elevator.status;
-
-                try
-                {
-                    await _context.SaveChangesAsync();
-                    return Content("Elevator: " + elevator.id + ", status as been change to: " + elevator.status);
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!ElevatorExists(id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-            }
-            return Content("Valid status: Intervention, Inactive, Active. Try again!  ");
-        }        
-
-        
-        private bool ElevatorExists(long id)
-        {
-            return _context.elevators.Any(e => e.id == id);
-        }
+      _context = context;
     }
+
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<Elevator>>> GetElevator()
+    {
+      return await _context.elevators.ToListAsync();
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Elevator>> GetElevator(long id)
+    {
+      var elevator = await _context.elevators.FindAsync(id);
+
+      if (elevator == null)
+      {
+        return NotFound();
+      }
+
+      return elevator;
+    }
+
+    [HttpGet("{id}/status")]
+    public async Task<ActionResult<string>> GetElevatortatus(long id)
+    {
+      var elevator = await _context.elevators.FindAsync(id);
+
+      if (elevator == null)
+      {
+        return NotFound();
+      }
+
+      return elevator.status;
+    }
+
+    [HttpGet("inactive")]
+    public async Task<ActionResult<List<Elevator>>> InactiveElevator()
+    {
+      var elevator = await _context.elevators
+          .Where(elevator => elevator.status != "Active")
+          .ToListAsync();
+
+      return elevator;
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> ChangeElevatortatus(long id, [FromBody] Elevator elevator)
+    {
+      var findElevator = await _context.elevators.FindAsync(id);
+
+      if (elevator == null)
+      {
+        return BadRequest();
+      }
+
+      if (findElevator == null)
+      {
+        return NotFound();
+      }
+
+      if (elevator.status == findElevator.status)
+      {
+        ModelState.AddModelError("status", "Looks like you didn't change the status.");
+      }
+
+      if (!ModelState.IsValid)
+      {
+        return BadRequest(ModelState);
+      }
+
+      findElevator.status = elevator.status;
+
+      try
+      {
+        await _context.SaveChangesAsync();
+      }
+      catch (DbUpdateConcurrencyException)
+      {
+        if (!ElevatorExists(id))
+        {
+          return NotFound();
+        }
+        else
+        {
+          throw;
+        }
+      }
+
+      return NoContent();
+    }
+
+    private bool ElevatorExists(long id)
+    {
+      return _context.elevators.Any(e => e.id == id);
+    }
+  }
 }
